@@ -5,18 +5,17 @@ import numpy as np
 import utils.general as utils
 from utils import rend_util
 
-class SceneDataset(torch.utils.data.Dataset):
+class SceneDatasetGeneric(torch.utils.data.Dataset):
     """Dataset for a class of objects, where each datapoint is a SceneInstanceDataset."""
 
     def __init__(self,
                  train_cameras,
-                 data_dir,
+                 instance_dir: str,
                  img_res,
-                 scan_id=0,
                  cam_file=None
                  ):
 
-        self.instance_dir = os.path.join('../data', data_dir, 'scan{0}'.format(scan_id))
+        self.instance_dir = instance_dir
 
         self.total_pixels = img_res[0] * img_res[1]
         self.img_res = img_res
@@ -151,3 +150,31 @@ class SceneDataset(torch.utils.data.Dataset):
         init_quat = torch.cat([init_quat, init_pose[:, :3, 3]], 1)
 
         return init_quat
+
+
+
+class SceneDataset(SceneDatasetGeneric):
+    """Dataset for a class of objects, where each datapoint is a SceneInstanceDataset."""
+
+    def __init__(self,
+                 train_cameras,
+                 data_dir: str,
+                 img_res,
+                 scan_id=0,
+                 cam_file=None
+                 ):
+        instance_dir = os.path.join('../data', data_dir, 'scan{0}'.format(scan_id))
+        super().__init__(train_cameras, instance_dir, img_res, cam_file=cam_file)
+
+class GSODataset(SceneDatasetGeneric):
+    """Dataset for a class of objects, where each datapoint is a SceneInstanceDataset."""
+
+    def __init__(self,
+                 train_cameras,
+                 data_dir: str,
+                 img_res,
+                 scan_id='Sonny_School_Bus',    # asin
+                 cam_file=None
+                 ):
+        instance_dir = os.path.join(data_dir, '{0}'.format(scan_id))
+        super().__init__(train_cameras, instance_dir, img_res, cam_file=cam_file)

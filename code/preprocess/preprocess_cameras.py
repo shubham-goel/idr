@@ -6,6 +6,8 @@ import argparse
 from glob import glob
 import os
 
+from pathlib import Path
+
 import utils.general as utils
 
 def get_Ps(cameras,number_of_cameras):
@@ -88,7 +90,8 @@ def get_all_mask_points(masks_dir):
 def refine_visual_hull(masks, Ps, scale, center):
     num_cam=masks.shape[0]
     GRID_SIZE=100
-    MINIMAL_VIEWS=45 # Fitted for DTU, might need to change for different data.
+    # MINIMAL_VIEWS=45 # Fitted for DTU, might need to change for different data.
+    MINIMAL_VIEWS= int(3/4 * Ps.shape[0]) # Fitted for DTU, might need to change for different data.
     im_height=masks.shape[1]
     im_width = masks.shape[2]
     xx, yy, zz = np.meshgrid(np.linspace(-scale, scale, GRID_SIZE), np.linspace(-scale, scale, GRID_SIZE),
@@ -142,7 +145,7 @@ def get_normalization_function(Ps,mask_points_all,number_of_normalization_points
         observerved_in_all = True
         max_d_all = 1e10
         min_d_all = 1e-10
-        for j in range(1, number_of_cameras, 5):
+        for j in range(1, number_of_cameras, 1): # check all images because we have very few images
             min_d, max_d = get_min_max_d(curx, cury, Ps[j], mask_points_all[j], P_0, Fs[j], j)
 
             if abs(min_d) < 0.00001:
@@ -190,8 +193,15 @@ def get_normalization(source_dir, use_linear_init=False):
         number_of_normalization_points = 100
         cameras_filename = "cameras"
 
+    if (
+        Path(source_dir).name == 'Truck'                            # Some things failing
+        or Path(source_dir).parent.parent.parent.name == 'amazon'   # Some things failing
+    ):
+        number_of_normalization_points=1000
+
+
     masks_dir='{0}/mask'.format(source_dir)
-    cameras=np.load('{0}/{1}.npz'.format(source_dir, cameras_filename))
+    cameras=np.load('{0}/{1}_old.npz'.format(source_dir, cameras_filename))
 
     mask_points_all,masks_all=get_all_mask_points(masks_dir)
     number_of_cameras = len(masks_all)
@@ -204,7 +214,7 @@ def get_normalization(source_dir, use_linear_init=False):
         cameras_new['scale_mat_%d'%i]=normalization
         cameras_new['world_mat_%d' % i] = np.concatenate((Ps[i],np.array([[0,0,0,1.0]])),axis=0).astype(np.float32)
 
-    np.savez('{0}/{1}_new.npz'.format(source_dir, cameras_filename), **cameras_new)
+    np.savez('{0}/{1}.npz'.format(source_dir, cameras_filename), **cameras_new)
 
     print(normalization)
     print('--------------------------------------------------------')
